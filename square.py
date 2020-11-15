@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import sys
 import numpy as np
 import numpy.linalg as la
 from pyhull.halfspace import Halfspace, HalfspaceIntersection
@@ -39,7 +40,7 @@ class SquareRecorder():
     self.pieces = pieces
     self.delta = 1.0 / pieces
     self.square = np.zeros((pieces, pieces), np.int8)
-    print("Pieces = %d, delta = %g" % (self.pieces, self.delta))
+    sys.stderr.write("Pieces = %d, delta = %g\n" % (self.pieces, self.delta))
 
   def t0_to_index(self, t):
     return int((t + 0.5 * self.delta) / self.delta)
@@ -68,29 +69,26 @@ class SquareRecorder():
           return False
     return True
     
-  def dump(self):
-    for y in range(self.pieces):
-      for x in range(self.pieces):
-        if self.square[x, y]:
-          print("X", end="")
-        else:
-          print("-", end="")
-      print()
-
-  def axis(self, out, theta):
-    y = 100.0 + 400.0 * theta_t(theta)
-    out.write('<path>100 %g m 500 %g l</path>\n' % (y, y))
-    out.write('<path>%g 100 m %g 500 l</path>\n' % (y, y))
+  def axis(self, out, width, theta, label):
+    r = 105.0 + width
+    r1 = r + 4
+    r2 = r + 4
+    y = 100.0 + width * theta_t(theta)
+    out.write('<path>95 %g m %g %g l</path>\n' % (y, r, y))
+    out.write('<path>%g 95 m %g %g l</path>\n' % (y, y, r))
+    out.write('<text pos="%g %g" valign="center" style="math">%s</text>\n' % (r1, y, label))
+    out.write('<text pos="%g %g" valign="baseline" halign="center" style="math">%s</text>\n' % (y, r2, label))
       
-  def write(self, fname):
+  def write(self, fname, width, axes=[]):
+    r = 100 + width
     out = open(fname, "w")
     out.write('<?xml version="1.0"?>\n')
     out.write('<!DOCTYPE ipe SYSTEM "ipe.dtd">\n')
     out.write('<ipe version="70221" creator="square.py">\n')
     out.write('<page>\n')
-    out.write('<path>100 100 m 500 100 l 500 500 l 100 500 l h</path>\n')
-    out.write('<image rect="100 100 500 500" width="%d" height="%d" ColorSpace="DeviceRGB">\n'
-              % (self.pieces, self.pieces))
+    out.write('<path>100 100 m %g 100 l %g %g l 100 %g l h</path>\n' % (r, r, r, r))
+    out.write('<image rect="100 100 %g %g" width="%d" height="%d" ColorSpace="DeviceRGB">\n'
+              % (r, r, self.pieces, self.pieces))
     colors = ["ffffff"] # 0 -- not checked
     for k in range(colorShades.shape[0]):
       col = colorShades[k]
@@ -100,11 +98,12 @@ class SquareRecorder():
         out.write(colors[self.square[x, y]])
       out.write('\n')
     out.write('</image>\n')
-    self.axis(out, np.pi/6)
-    self.axis(out, np.radians(35))
-    self.axis(out, np.radians(25))
-    self.axis(out, 0.049)
-    self.axis(out, np.pi/16)
+    for t, label in axes:
+      self.axis(out, width, t, label)
+    out.write('<path arrow="normal">80 80 m %g 80 l</path>\n' % (130 + width))
+    out.write('<path arrow="normal">80 80 m 80 %g l</path>\n' % (130 + width))
+    out.write('<text pos="%g 86" size="12" style="math">\\theta\'</text>\n' % (130 + width))
+    out.write('<text pos="70 %g" size="12" style="math">\\theta</text>\n' % (115 + width))
     out.write('</page>\n')
     out.write('</ipe>\n')
     out.close()
@@ -197,7 +196,12 @@ def fillAll():
   fillSquare(ecover, r, 0.0, dd, 0.0, 1.0 - dd, blueIndex, blueIndex) # do not recurse
   for x in range(4):
     fillSquare(ecover, r, x * dd, x * dd + dd, 1.0 - dd, 1.0, blueIndex + 2, blueIndex + 3)
-  r.write("square.ipe")
+  axes = [(np.pi/6, "\\pi/6"),
+          (np.radians(35), "35^\\circ"),
+          (np.radians(25), "25^\\circ"),
+          (0.049, "\\theta_0"),
+          (np.pi/16, "\\pi/16")]
+  r.write("square.ipe", 200, axes)
 
 # ------------------------------------------------------------------------------------------
 
