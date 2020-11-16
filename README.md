@@ -6,8 +6,8 @@ and longest edge of length sqrt(2).
 
 ## Requirements
 
-This Python3 script requires the `pyhull` and `numpy` packages, which
-can be installed with `pip`.
+This Python3 script requires the `pyhull`, `numpy`, and 'mpmath'
+packages, which can be installed with `pip`.
 
 ## Running
 
